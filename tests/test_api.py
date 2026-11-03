@@ -32,18 +32,18 @@ def test_tanks_list_and_details():
     assert tank_resp.json()["id"] == tank_id
 
 def test_water_level_update_and_threshold_alert():
-    # Set to Low level (25%)
+    # Set to Critical level (25%)
     response = client.post("/api/tanks/1/water-level", json={"level_pct": 25.0})
     assert response.status_code == 200
     tank = response.json()
     assert tank["current_level_pct"] == 25.0
-    assert tank["status"] == "Low"
+    assert tank["status"] == "Critical"
 
     # Verify alert generated
     alerts_resp = client.get("/api/alerts?tank_id=1")
     assert alerts_resp.status_code == 200
     alerts = alerts_resp.json()
-    assert any("Water level is low" in a["message_en"] for a in alerts)
+    assert any("Critical water level" in a["message_en"] for a in alerts)
 
 def test_simulate_consumption_and_refill():
     # Start at 50

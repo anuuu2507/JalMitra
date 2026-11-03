@@ -1,15 +1,34 @@
 import os
+import sys
+from pathlib import Path
+
+# Add project root and backend dir to sys.path so it works from root or inside backend/
+_backend_dir = Path(__file__).resolve().parent
+_project_root = _backend_dir.parent
+
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+if str(_backend_dir) not in sys.path:
+    sys.path.insert(0, str(_backend_dir))
+
 from contextlib import asynccontextmanager
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
-from backend.database import engine, Base, get_db
-from backend import models, schemas, crud
-from backend.seed_data import reset_and_seed_database
-from backend.sensor_service import sensor_provider, FutureSensorProvider
-from backend.notification_service import notification_manager
+try:
+    from backend.database import engine, Base, get_db
+    from backend import models, schemas, crud
+    from backend.seed_data import reset_and_seed_database
+    from backend.sensor_service import sensor_provider, FutureSensorProvider
+    from backend.notification_service import notification_manager
+except (ImportError, ModuleNotFoundError):
+    from database import engine, Base, get_db
+    import models, schemas, crud
+    from seed_data import reset_and_seed_database
+    from sensor_service import sensor_provider, FutureSensorProvider
+    from notification_service import notification_manager
 
 # Initialize database schema
 Base.metadata.create_all(bind=engine)
@@ -227,6 +246,8 @@ def get_analytics(tank_id: Optional[int] = None, db: Session = Depends(get_db)):
 
     levels = [r.level_pct for r in history] if history else [tank.current_level_pct]
     avg_level = sum(levels) / len(levels)
+    min_level = min(levels)
+    max_level = max(levels)
 
     critical_cnt = len([a for a in alerts if a.severity.lower() == "critical"])
     warning_cnt = len([a for a in alerts if a.severity.lower() == "warning"])
